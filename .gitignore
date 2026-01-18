@@ -1,0 +1,16 @@
+# Node
+node_modules/
+dist/
+.eslintcache
+
+# Secrets
+.env
+.env.local
+
+# Database / Prisma
+/apps/server/prisma/migrations/
+/apps/server/src/generated/
+
+# Docker
+postgres_data/
+minio_data/

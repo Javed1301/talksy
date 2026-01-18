@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // It is now highly recommended to specify a custom output path in Prisma 7
+  output   = "../src/generated/client"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  phoneNumber String   @unique
+  name        String?
+  avatar      String?
+  isOnline    Boolean  @default(false)
+  lastSeen    DateTime @default(now())
+
+  // Relations
+  sentMessages Message[] @relation("SentBy")
+  chats        Chat[]    @relation("UserChats")
+}
+
+model Chat {
+  id      String  @id @default(uuid())
+  isGroup Boolean @default(false)
+  name    String? // Only for groups
+
+  participants User[]    @relation("UserChats")
+  messages     Message[]
+  updatedAt    DateTime  @updatedAt
+}
+
+model Message {
+  id       String  @id @default(uuid())
+  content  String? // Can be null if it's just a file
+  fileUrl  String? // For your File Transfer feature
+  fileType String? // "image", "video", "pdf"
+
+  status String @default("sent") // sent, delivered, read
+
+  senderId String
+  sender   User   @relation("SentBy", fields: [senderId], references: [id])
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id])
+
+  createdAt DateTime @default(now())
+}

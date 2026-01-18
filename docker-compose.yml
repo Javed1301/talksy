@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Database: Stores Users, Chats, and Messages
+  postgres:
+    image: postgres:15-alpine
+    container_name: whatsapp_db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  # Cache: Manages "Online" status and Socket.io scaling
+  redis:
+    image: redis:alpine
+    container_name: whatsapp_redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  # Storage: Handles images, videos, and documents locally
+  minio:
+    image: minio/minio
+    container_name: whatsapp_storage
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API Access
+      - "9001:9001" # Web Dashboard
+    volumes:
+      - minio_data:/data
+    restart: always
+
+volumes:
+  postgres_data:
+  minio_data:
