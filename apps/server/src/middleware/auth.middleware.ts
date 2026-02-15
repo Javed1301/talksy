@@ -8,7 +8,7 @@ interface JwtPayload {
 
 // 2. Extend the Express Request type globally or locally
 export interface AuthenticatedRequest extends Request {
-  userId?: string;
+  user?: { id: string }; // You can add more fields as needed
 }
 
 export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -23,7 +23,7 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
     const decoded = jwt.verify(token, process.env.TOKEN_SECRET!) as JwtPayload;
 
     // 4. Attach the ID cleanly without using 'any'
-    req.userId = decoded.id; 
+    req.user = { id: decoded.id }; 
     
     next();
   } catch (error) {

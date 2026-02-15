@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import ProfilePage from './pages/ProfilePage';
+import VerifyEmailPage from './pages/verifyEmailPage';
 
 function AppRoutes() {
   const { user, loading } = useAuth();
@@ -22,6 +23,7 @@ function AppRoutes() {
       <Route path="/signup" element={!user ? <SignupPage /> : <Navigate to="/dashboard" />} />
       <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />
       <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );

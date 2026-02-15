@@ -3,6 +3,8 @@ import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
 import { signupSchema, loginSchema } from '../validations/auth.validation.js';
+import crypto from 'crypto';
+import {sendVerificationEmail} from '../lib/mail.service.js';
 
 /**
  * SIGNUP: Create a new user with Email & Username
@@ -91,7 +93,8 @@ export const login = async (req: Request, res: Response) => {
 
     res.json({
       message: "Welcome back!",
-      user: { id: user.id, username: user.username, email: user.email }
+      user: { id: user.id, username: user.username, 
+        email: user.email, isVerified: user.isVerified,avatar: user.avatar }
     });
 
   } catch (error: any) {
@@ -132,7 +135,10 @@ export const getMe = async (req: Request, res: Response) => {
         id: true, 
         username: true, 
         email: true, 
-        name: true 
+        name: true,
+        isVerified: true,
+        avatar: true,
+        about: true
       }
     });
 
@@ -146,3 +152,95 @@ export const getMe = async (req: Request, res: Response) => {
     return res.status(200).json({ user: null });
   }
 };
+
+export const requestEmailVerification = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    console.log("User ID in requestEmailVerification:", userId);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true } // Only fetch what we need
+    });
+
+    if (!user) {
+      console.log("User not found in database for ID:", userId);
+      return res.status(404).json({ error: "User record not found." });
+    }
+
+    console.log("User found, sending email to:", user.email);
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    //save to database
+    await prisma.user.update({
+      where: { id: userId },
+      data:{
+        verifyToken: verificationToken,
+        verifyExpiry: tokenExpiry
+      }
+    })
+
+    const checkUser = await prisma.user.findUnique({ where: { id: userId } });
+    console.log("Confirming Token in DB:", checkUser?.verifyToken);
+
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+    await sendVerificationEmail(user.email, verificationUrl);
+
+    return res.status(200).json({ message: "Verification email sent!" });
+  } catch (error) {
+    console.log("Error in requestEmailVerification controller:", error);
+    return res.status(500).json({ error: "Failed to send verification email" });
+  }
+
+}
+
+export const verifyEmail = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+    console.log("Token received for email verification:", token);
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: "Invalid or missing token" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where:{
+        verifyToken: token as string,
+      }
+    });
+
+    if(!user){
+      console.log("No user found with the provided token:", token);
+      return res.status(400).json({ error: "Invalid or expired token" });
+
+    }
+
+    const now = new Date();
+
+    if (user.verifyExpiry && user.verifyExpiry < now) {
+      console.log("❌ Token expired. Expiry:", user.verifyExpiry, "Now:", now);
+      return res.status(400).json({ error: "Token has expired" });
+    }
+
+
+
+    await prisma.user.update({
+      where:{ id: user.id },
+      data:{
+        isVerified: true,
+        verifyToken: null,
+        verifyExpiry: null
+      }
+    });
+
+    res.status(200).json({ message: "Email verified successfully!" });
+  } catch (error) {
+    console.error("Error in verifyEmail controller:", error);
+    return res.status(500).json({ error: "Failed to verify email" });
+  }
+}
+
