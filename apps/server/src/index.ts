@@ -1,3 +1,4 @@
+
 import express from 'express';
 import cookieParser from 'cookie-parser'; // To read JWT cookies
 import cors from 'cors'; // For your Next.js frontend to connect
@@ -6,6 +7,19 @@ import authRouter from './routes/auth.router.js'; // We will create this next
 import userRouter from './routes/user.rouer.js'; // We will create this next
 
 const app = express();
+
+import express from "express";
+import healthRouter from "./routes/health.js";
+import apiRouter
+ from "./routes/api/index.js";
+const app = express();
+app.use(express.json());
+
+
+app.use(healthRouter);
+app.use("/api",apiRouter);
+
+
 const PORT = 5000;
 
 // Middleware
