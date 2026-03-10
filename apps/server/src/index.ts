@@ -8,6 +8,7 @@ import userRouter from './routes/user.rouer.js'; // We will create this next
 
 const app = express();
 
+
 const PORT = 5000;
 
 // Middleware
